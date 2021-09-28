@@ -1,0 +1,27 @@
+version: '3'
+services:
+    mysqldb:
+        image: mysql:5.7.22
+        container_name: mysql
+        restart: always
+        environment:
+            - MYSQL_DATABASE=test
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_USER=dev
+            - MYSQL_PASSWORD=dev
+        ports:
+            - 8989:3306
+        volumes:
+            - ./data/db/mysql:/var/lib/mysql:rw   
+            - ./dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    php-apache:
+        container_name: php-apache
+        build: .
+        volumes:
+            - ./dist/:/var/www/html/
+        ports:
+            - 8000:80
+        depends_on:
+          - mysqldb
+
+   

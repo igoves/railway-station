@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="/assets/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/nprogress/nprogress.css" rel="stylesheet">
+    <link href="/assets/vue2-datepicker/index.css" rel="stylesheet">
+    <link href="/assets/style.css" rel="stylesheet">
+    <title>Railway Station</title>
+</head>
+<body>
+
+<div class="container">
+    <div id="app" class="mb-5" v-cloak>
+
+        <div class="bg-white box-shadow p-2 mb-3">
+            <ul class="nav nav-pills  nav-justified" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pills-home-tab" data-bs-toggle="pill"
+                            data-bs-target="#pills-home" type="button" role="tab" aria-controls="pills-home"
+                            aria-selected="true">Client
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pills-profile-tab" data-bs-toggle="pill"
+                            data-bs-target="#pills-profile" type="button" role="tab" aria-controls="pills-profile"
+                            aria-selected="false">Control Panel
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <h1 class="text-uppercase text-center fw-light my-3">Railway Station</h1>
+
+        <div class="tab-content" id="pills-tabContent">
+
+            <div class="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="pills-home-tab">
+
+                <div class="bg-white p-3 my-4 shadow-sm">
+                    <div class="row mb-4">
+                        <div class="col-5">
+                            <label class="col-form-label">From</label>
+                            <input type="text" class="form-control input-lg" name="from" v-model="city_from" value=""/>
+                        </div>
+                        <div class="col-2 text-center">
+                            <div class="col-form-label">&nbsp;</div>
+                            <button @click="changeFromTo" class="btn btn-link text-decoration-none" type="button"> ᐊ
+                                change ᐅ
+                            </button>
+                        </div>
+                        <div class="col-5">
+                            <label class="col-form-label">To</label>
+                            <input type="text" class="form-control input-lg" name="to" v-model="city_to" value=""/>
+                        </div>
+                        <div class="col-3">
+                            <label class="col-form-label">Departure date</label>
+                            <date-picker :clearable="false" v-model="departure_date"></date-picker>
+                        </div>
+                        <div class="col-3 text-end">
+                            <div class="col-form-label">&nbsp;</div>
+                            <label class="col-form-label">Departure time from </label>
+                        </div>
+                        <div class="col-2">
+                            <div class="col-form-label">&nbsp;</div>
+                            <date-picker type="time" v-model="departure_time" format="HH:mm" placeholder="hh:mm"
+                                         :clearable="false" :minute-step="5"></date-picker>
+                        </div>
+                        <div class="col-4">
+                            <div class="col-form-label">&nbsp;</div>
+                            <div class="d-grid">
+                                <button type="button" @click="searchTrain" class="btn btn-outline-primary">Search train
+                                    on {{ mysqlDate(departure_date) }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 v-if="search_result" class="mb-3 fw-light">Search result (founded {{ search_found }}) on
+                    {{ mysqlDate(departure_date) }}</h5>
+
+                <div v-if="search_result && search_found === 0" class="alert alert-warning">
+                    Sorry nothing to found! Try another date
+                </div>
+
+                <div v-show="searching" class="lds-dual-ring"></div>
+
+                <div v-if="data.search_trains" class="bg-white p-3 mb-3 shadow-sm"
+                     v-for="(train, index) in data.search_trains">
+                    <div class="row g-2">
+
+                        <h4 class="fw-light cursor-pointer text-decoration-underline"
+                            @click="toggleDirectionList(index)">
+                            {{ train.direction.station_name_departure.name }}
+                            -
+                            {{ train.direction.station_name_arrival.name }}
+                        </h4>
+                        <div :id="'train_'+index" class="d-none py-2">
+                            <div class="d-inline me-2 p-2 border border-info rounded-1"
+                                 v-for="station in train.direction.stations">
+                                {{ station.departure_time }}
+                                <span v-if="station.departure_time && station.arriaval_time">-</span>
+                                {{ station.arriaval_time }}
+                                - {{ station.station_name.name }}
+                            </div>
+                        </div>
+
+                        <div class="col-2">
+                            <div class=" text-center p-3">
+                                <img style="max-width: 110px" src="assets/images/train.jpg" class="card-img-top"
+                                     :alt="train.name">
+                                <b class="card-text d-block">{{ train.name }}</b>
+                                <small class="text-muted">wagons {{ totalAvailableWagons(train.wagons) }}</small>
+                            </div>
+                        </div>
+                        <div class="col-3" v-for="wagon in train.wagons">
+                            <div
+                                :id="'wagon_'+wagon.id"
+                                @click="setWagon(wagon.id)"
+                                class="card text-center p-3 cursor-pointer d-block wagon"
+                                v-if="wagon.status == 1"
+                            >
+                                <img style="max-width: 110px" src="assets/images/wagon.jpg" class="card-img-top"
+                                     :alt="wagon.name">
+                                <div class="card-text">{{ wagon.name }} {{ wagon.wagon_klass.name }}</div>
+                                <small class="text-muted">places left {{ totalAvailableSeats(wagon.seats) }}</small>
+                                <div class="clearfix"></div>
+                                <div :id="'wagon_seats_'+wagon.id" class="d-none wagon_seats">
+
+                                    <div class="d-inline-block" v-for="seat in wagon.seats">
+                                        <div v-if="seat.busy">
+                                            <div class="btn btn-disabled btn-sm border-secondary bg-secondary">
+                                                {{ seat.name }}
+                                            </div>
+                                        </div>
+                                        <button
+                                            v-else
+                                            @click="setSeat(seat.id, wagon.id)"
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary me-2 mt-2"
+                                            style="">
+                                            {{ seat.name }}
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
+
+                <div v-if="auth === false" class="row">
+                    <div class="col-sm-6 offset-sm-3 col-md-4 offset-md-4 mt-2">
+                        <div class="bg-white shadow-sm p-4">
+                            <h5 class="text-center mb-3 fw-light">Authorization</h5>
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="floatingInput" placeholder="your login"
+                                       value="admin">
+                                <label for="floatingInput">Login</label>
+                            </div>
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="floatingPassword" placeholder="Password"
+                                       value="admin">
+                                <label for="floatingPassword">Password</label>
+                            </div>
+                            <div class="d-grid gap-1">
+                                <button type="button" @click="auth = true" class="btn btn-outline-primary btn-lg mt-3">
+                                    Sign In
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="auth === true">
+
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#admin_tickets"
+                                    type="button" role="tab" aria-selected="true">Tickets
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#admin_clients"
+                                    type="button" role="tab" aria-selected="false">Customers
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#admin_trains"
+                                    type="button" role="tab" aria-selected="false">Trains
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#admin_directions"
+                                    type="button" role="tab" aria-selected="false">Directions
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#admin_wagons"
+                                    type="button" role="tab" aria-selected="false">Wagons
+                            </button>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" role="button"
+                               aria-expanded="false">References</a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#" class="nav-link" data-bs-toggle="tab"
+                                       data-bs-target="#admin_wagon_klasses"
+                                       type="button" role="tab" aria-selected="false">Wagon Klasses
+                                    </a>
+                                <li>
+                                <li>
+                                    <a href="#" class="nav-link" data-bs-toggle="tab"
+                                       data-bs-target="#admin_train_stations"
+                                       type="button" role="tab" aria-selected="false">Train Stations
+                                    </a>
+                                <li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="admin_tickets" role="tabpanel"
+                             aria-labelledby="admin_tickets-tab">
+
+                            <!-- TICKETS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Train (wagon, klass)</th>
+                                    <th>Seat</th>
+                                    <th>Direction</th>
+                                    <th>Customer</th>
+                                    <th>Price</th>
+                                    <th>Date</th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.tickets">
+                                <tr v-for="ticket in data.tickets">
+                                    <td>{{ ticket.id }}</td>
+                                    <td>
+                                        {{ data.trains[ticket.train_id].name }}
+                                        ({{ data.wagons[ticket.wagon_id].name }}
+                                        {{ data.wagon_klasses[ticket.wagon_klass_id].name }})
+                                    </td>
+                                    <td>{{ data.wagon_seats[ticket.wagon_id][ticket.wagon_seat_id].name}}</td>
+                                    <td>
+                                        {{ data.stations[data.directions[ticket.train_direction_id].station_id_departure].name
+                                        }}
+                                        -
+                                        {{ data.stations[data.directions[ticket.train_direction_id].station_id_arrival].name}}
+                                    </td>
+                                    <td>{{ ticket.customer_id }}</td>
+                                    <td>{{ data.wagon_seats[ticket.wagon_id][ticket.wagon_seat_id].price }}</td>
+                                    <td>{{ ticket.created_at }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_clients" role="tabpanel"
+                             aria-labelledby="admin_clients-tab">
+
+                            <!-- CUSTOMERS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Login</th>
+                                    <th>Password</th>
+                                    <th>First name</th>
+                                    <th>Last name</th>
+                                    <th>Passport</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.customers">
+                                <tr v-for="customer in data.customers">
+                                    <td>{{ customer.id }}</td>
+                                    <td>{{ customer.login }}</td>
+                                    <td>{{ customer.password }}</td>
+                                    <td>{{ customer.first_name }}</td>
+                                    <td>{{ customer.last_name }}</td>
+                                    <td>{{ customer.passport }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_trains" role="tabpanel" aria-labelledby="admin_trains-tab">
+
+                            <!-- TRAINS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Name</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.trains">
+                                <tr v-for="(train, index) in data.trains">
+                                    <td>{{ index }}</td>
+                                    <td>{{ train.name }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <td></td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Train Name"/>
+                                </td>
+                                <td colspan="2">
+                                    <button @click="needTodo" class="btn btn-outline-success btn-sm">＋ Add</button>
+                                </td>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_directions" role="tabpanel"
+                             aria-labelledby="admin_directions-tab">
+
+                            <!-- DIRECTIONS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Station [departure - arrival]</th>
+                                    <th>Train</th>
+                                    <th>Transit days</th>
+                                    <th>Rest days</th>
+                                    <th>Start from</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.directions">
+                                <tr v-for="direction in data.directions">
+                                    <td>{{ direction.id }}</td>
+                                    <td>
+                                        {{ data.stations[direction.station_id_departure].name }}
+                                        -
+                                        {{ data.stations[direction.station_id_arrival].name }}
+                                    </td>
+                                    <td>{{ data.trains[direction.train_id].name }}</td>
+                                    <td>{{ direction.transit_days }}</td>
+                                    <td>{{ direction.rest_days }}</td>
+                                    <td>{{ direction.start_from }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <td></td>
+                                <td>
+                                    <div class="row">
+                                        <div class="col">
+                                            <select class="form-select form-select-sm"></select>
+                                        </div>
+                                        <div class="col">
+                                            <select class="form-select form-select-sm"></select>
+                                        </div>
+                                    </div>
+                                </td>
+                                </td>
+                                <select class="form-select form-select-sm"></select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm"></select>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" type="number"/>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm"/>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm"/>
+                                </td>
+                                <td colspan="2">
+                                    <button @click="needTodo" class="btn btn-outline-success btn-sm">＋ Add</button>
+                                </td>
+                                </tfoot>
+                            </table>
+
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_wagons" role="tabpanel" aria-labelledby="admin_wagons-tab">
+
+                            <!-- WAGONS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Title</th>
+                                    <th>Train</th>
+                                    <th>Klass</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.wagons">
+                                <tr v-for="wagon in data.wagons">
+                                    <td>{{ wagon.id }}</td>
+                                    <td>{{ wagon.name }}</td>
+                                    <td>{{ data.trains[wagon.train_id].name }}</td>
+                                    <td>{{ data.wagon_klasses[wagon.wagon_klass_id].name }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-sm"
+                                                :class="[wagon.status == 1 ? 'btn-info' : 'btn-secondary']">👁
+                                        </button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <td></td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Title"/>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm"></select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm"></select>
+                                </td>
+                                <td colspan="3">
+                                    <button @click="needTodo" class="btn btn-outline-success btn-sm">＋ Add</button>
+                                </td>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_wagon_klasses" role="tabpanel"
+                             aria-labelledby="admin_wagon_klasses-tab">
+
+                            <!-- WAGON KLASSES -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Name</th>
+                                    <th>Seats</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.wagon_klasses">
+                                <tr v-for="klass in data.wagon_klasses">
+                                    <td>{{ klass.id }}</td>
+                                    <td>{{ klass.name }}</td>
+                                    <td>{{ klass.seats }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <td></td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Title"/>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" placeholder="Seats"/>
+                                </td>
+                                <td colspan="2">
+                                    <button @click="needTodo" class="btn btn-outline-success btn-sm">＋ Add</button>
+                                </td>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                        <div class="tab-pane fade" id="admin_train_stations" role="tabpanel"
+                             aria-labelledby="admin_train_stations-tab">
+
+                            <!-- TRAIN STATIONS -->
+                            <table
+                                class="table table-striped table-hover bg-white border-bottom border-start border-end">
+                                <thead>
+                                <tr>
+                                    <th class="table-small-col">#</th>
+                                    <th>Name</th>
+                                    <th class="table-small-col"></th>
+                                    <th class="table-small-col"></th>
+                                </tr>
+                                </thead>
+                                <tbody v-if="data.stations">
+                                <tr v-for="station in data.stations">
+                                    <td>{{ station.id }}</td>
+                                    <td>{{ station.name }}</td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-warning btn-sm">✎</button>
+                                    </td>
+                                    <td class="text-center">
+                                        <button @click="needTodo" class="btn btn-danger btn-sm">✕</button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tbody v-else>
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        No data
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <td></td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Title"/>
+                                </td>
+                                <td colspan="2">
+                                    <button @click="needTodo" class="btn btn-outline-success btn-sm">＋ Add</button>
+                                </td>
+                                </tfoot>
+                            </table>
+
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+
+        <modal v-if="showModalCart" @close="showModalCart=false"></modal>
+
+    </div> <!-- end app -->
+</div>
+
+<script src="/assets/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="/assets/vue.js"></script>
+<script src="/assets/axios.min.js"></script>
+<script src="/assets/nprogress/nprogress.min.js"></script>
+<script src="/assets/vue2-datepicker/index.min.js"></script>
+<script src="/assets/script.js"></script>
+</body>
+</html>
