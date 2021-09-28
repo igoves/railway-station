@@ -4,7 +4,7 @@ PHP + VUE SPA.
 Diagram
 <kbd><img src="#" alt="front" width="100%"/></kbd>
 
-Schema and sample data
+Dump sql
 Link
 
 ## Installing and start 

@@ -371,9 +371,10 @@ class Helper
 
         }
 
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
+        // echo '<pre>';
+        // print_r($data);
+        // echo '</pre>';
+		echo $this->showDefaultData();
         die();
     }
 

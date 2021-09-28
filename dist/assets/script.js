@@ -23,15 +23,11 @@ Vue.component('modal', {
     },
     methods: {
         submit() {
-            console.log(1111111);
 
             axios.post('/api', {api: 'order', fields: this.fields, cart: this.cart})
             .then(function (response) {
                 console.log(response.data);
-                // window.document.getElementsByClassName('modal-content')[0].innerHTML = '<div class="text-center p-5"><h1 >' + Vue.prototype.message.order_success + '</h1> <a class="btn btn-success" style="text-decoration:none" href="">' + Vue.prototype.message.back + '</a><br/><br/></div>';
-
-                this.$root.$data.showModalCart = false;
-
+                window.document.getElementsByClassName('modal-content')[0].innerHTML = '<div class="text-center p-5"><h1 >Success!</h1> <a class="btn btn-success" style="text-decoration:none" href="">back</a><br/><br/></div>';
             })
             .catch(function (error) {
                 console.log(error);
