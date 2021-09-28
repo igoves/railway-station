@@ -1,5 +1,14 @@
 version: '3'
 services:
+    php-apache:
+        container_name: php-apache
+        build: .
+        volumes:
+            - ./dist/:/var/www/html/
+        ports:
+            - 8000:80
+        depends_on:
+          - mysqldb
     mysqldb:
         image: mysql:5.7.22
         container_name: mysql
@@ -14,14 +23,5 @@ services:
         volumes:
             - ./data/db/mysql:/var/lib/mysql:rw   
             - ./dump.sql:/docker-entrypoint-initdb.d/dump.sql
-    php-apache:
-        container_name: php-apache
-        build: .
-        volumes:
-            - ./dist/:/var/www/html/
-        ports:
-            - 8000:80
-        depends_on:
-          - mysqldb
-
+        command: mysqld --sql_mode=""
    

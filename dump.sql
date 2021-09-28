@@ -11,8 +11,6 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
-
-
 --
 -- База данных: `test`
 --
@@ -316,7 +314,7 @@ ALTER TABLE `customers`
 -- AUTO_INCREMENT для таблицы `tickets`
 --
 ALTER TABLE `tickets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT для таблицы `trains`
@@ -371,7 +369,7 @@ ALTER TABLE `tickets`
   ADD CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`),
   ADD CONSTRAINT `tickets_ibfk_2` FOREIGN KEY (`train_id`) REFERENCES `trains` (`id`),
   ADD CONSTRAINT `tickets_ibfk_3` FOREIGN KEY (`wagon_id`) REFERENCES `wagons` (`id`),
-  ADD CONSTRAINT `tickets_ibfk_4` FOREIGN KEY (`wagon_klass_id`) REFERENCES `wagons` (`id`),
+  ADD CONSTRAINT `tickets_ibfk_4` FOREIGN KEY (`wagon_klass_id`) REFERENCES `wagon_klasses` (`id`),
   ADD CONSTRAINT `tickets_ibfk_5` FOREIGN KEY (`train_direction_id`) REFERENCES `train_directions` (`id`),
   ADD CONSTRAINT `tickets_ibfk_6` FOREIGN KEY (`wagon_seat_id`) REFERENCES `wagon_seats` (`id`);
 
