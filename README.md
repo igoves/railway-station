@@ -1,11 +1,14 @@
-## RAILWAY STATION - prototype of railway station for order tickets
-PHP + VUE SPA.
+## RAILWAY STATION - prototype of railway station to order tickets
+PHP + VUE SPA
 
 Diagram
-<kbd><img src="#" alt="front" width="100%"/></kbd>
+<kbd><img src="https://raw.githubusercontent.com/utz0r2/railway-station/master/assets/diagram.png" alt="front" width="100%"/></kbd>
 
 Dump sql
-Link
+[Link](https://raw.githubusercontent.com/utz0r2/railway-station/master/dump.sql)
+
+## Demo
+<kbd><img src="https://github.com/utz0r2/railway-station/blob/master/assets/record_210928_182448%20(1).gif?raw=true" alt="front" width="100%"/></kbd>
 
 ## Installing and start 
 
